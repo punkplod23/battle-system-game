@@ -10,4 +10,10 @@ class Character():
     playedTurn: bool = False
     target: str = "HERO"
     tag: str = "HERO"
+    envokeAction: bool = False
+    
+
+
+      
+   
     

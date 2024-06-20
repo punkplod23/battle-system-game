@@ -1,28 +1,33 @@
 from game.dto import attributes
 from game.dto import character
+from game.entities import countdowntimer
+from game.entities.gemeobject import gameObject 
 import random
 import string
 import time
 
-gameQue = [] #[character.Character]
+gameQue = []
 firstRun = 0
 highest_position = 12333333333333
-    
+
+def getGameObjectByPosition(i):
+    return gameQue[i].getCharacter();
+
 def printCharacter(i):
     print(
-        "Enemy:",gameQue[i].name,"\n",
-        "HP:",healthBar(gameQue[i].attributes.hp),"\n",
-        "MP:",healthBar(gameQue[i].attributes.mp),"\n"
+        "Enemy:",getGameObjectByPosition(i).name,"\n",
+        "HP:",healthBar(getGameObjectByPosition(i).attributes.hp),"\n",
+        "MP:",healthBar(getGameObjectByPosition(i).attributes.mp),"\n"
     )
 
 def printEnemies():
     for i in range(len(gameQue)):
-        if gameQue[i].type == "ENEMY":
+        if getGameObjectByPosition(i).type == "ENEMY":
             printCharacter(i)
 
 def healthBar(value):
-    color_red = "\033[91m"
-    color_green = "\033[92m"
+    #color_red = "\033[91m"
+    #color_green = "\033[92m"
     bar = ""
     if value > 0:
         bar = "-"  * value
@@ -37,11 +42,13 @@ def setup():
     for i in range(random.randint(1,2)):
         gameQue.append(createEnemy());
         
+        
+        
     print("Welcome Hero \n")  
     printCharacter(0)
-    enemyActionChange()
-    attributePositions()
     print("Enemies Have Appeared \n")
+    print(gameQue)
+    
     printEnemies()
     runGame()
 
@@ -52,47 +59,42 @@ def checkConditions():
        return False 
 
     for i in range(len(gameQue)):
-        if gameQue[i].type == "HERO":
-            if gameQue[i].attributes.hp < 1:
+        if getGameObjectByPosition(i).type == "HERO":
+            if getGameObjectByPosition(i).attributes.hp < 1:
                 print("You Died")
                 return False 
         
     return True 
 
+def resetTimer(position):
+    gameQue[position].timerCurrent = countdown(gameQue[position].timer)
+
 def getLowestPosition():
 
     object_position = -99
     for i in range(len(gameQue)):
-        if highest_position  > gameQue[i].position:
-            object_position = i       
-    
-    if object_position == -99:
-        attributePositions()
-        return getLowestPosition()
-    
-        
+        if gameQue[i].checkIsTimerZero:
+            return i
+
     return object_position     
             
               
 def runQue():  
     position = getLowestPosition()
-
-    object = gameQue[position];
-
+    if position != -99:
+        object = getGameObjectByPosition(position);
+        if object.type == "ENEMY":
+            EnemyAttack(position); 
         
-
-    if object.type == "ENEMY":
-       EnemyAttack(position); 
-       
-    if object.type == "HERO":
-       HeroAttack();   
+        if object.type == "HERO":
+            HeroAttack();   
        
     time.sleep(1)
 
 def FindEnemyPositionByName(name):
     for i in range(len(gameQue)):
-        if gameQue[i].type == "ENEMY":
-            if gameQue[i].name == name:
+        if getGameObjectByPosition(i).type == "ENEMY":
+            if getGameObjectByPosition(i).name == name:
                 return i   
 
 def HeroAttack():
@@ -102,23 +104,23 @@ def HeroAttack():
    
    if position:
    
-    enemy = gameQue[position];
+    enemy = getGameObjectByPosition(position);
     if hitMiss(0):
         damage = attackOption(0)
         print("Hero:",enemy.name," inflicted\n",damage," damage")
-        gameQue[position].attributes.hp = enemy.attributes.hp-damage
+        gameQue[position].characterObj.attributes.hp = enemy.attributes.hp-damage
       
-        if gameQue[position].attributes.hp < 1:
+        if gameQue[position].characterObj.attributes.hp < 1:
             print(enemy.name,"Is Dead")
-            gameQue.remove(enemy)
+            gameQue.remove(gameQue[position])
         else:
             printCharacter(position)
          
         printEnemies()   
-        gameQue[0].position = highest_position
+        gameQue[0].resetTimer()
     else:
-        print("Hero has missed",gameQue[position].name,"Has Missed\n",)   
-        gameQue[0].position = highest_position
+        print("Hero has missed",getGameObjectByPosition(position).name,"Has Missed\n",) 
+        gameQue[0].resetTimer()  
    else:
        HeroAttack()
                  
@@ -126,17 +128,17 @@ def HeroAttack():
     
 def EnemyAttack(position):
     
-    enemy = gameQue[position];
-    print("Enemy:",gameQue[position].name,"Is Attacking\n",)
+    enemy = getGameObjectByPosition(position);
+    print("Enemy:",getGameObjectByPosition(position).name,"Is Attacking\n",)
     if hitMiss(1):
         damage = attackOption(1)
-        print("Enemy:",gameQue[position].name,"Has inflicted\n",damage," damage")
-        gameQue[0].attributes.hp = gameQue[0].attributes.hp-damage
+        print("Enemy:",getGameObjectByPosition(position).name,"Has inflicted\n",damage," damage")
+        gameQue[0].characterObj.attributes.hp = getGameObjectByPosition(0).attributes.hp-damage
+        gameQue[position].resetTimer()
         printCharacter(0)
-        gameQue[position].position = highest_position
     else:
-        gameQue[position].position = highest_position
-        print("Enemy:",gameQue[position].name,"Has Missed\n",)
+        gameQue[position].resetTimer()
+        print("Enemy:",getGameObjectByPosition(position).name,"Has Missed\n",)
     
 def runGame():
     while(checkConditions()):
@@ -146,11 +148,21 @@ def run():
    setup()
    
 
+def countdown(t): 
+    
+    while t: 
+        mins, secs = divmod(t, 60) 
+        timer = '{:02d}:{:02d}'.format(mins, secs) 
+        print(timer, end="\r") 
+        time.sleep(1) 
+        t -= 1
+      
+
 def hitMiss(isEnemy):
-    hitOption = list(range(0,random.randint(1,2)))
+    hitOption = list(range(0,random.randint(1,22)))
 
     if isEnemy:
-        hitOption = list(range(0,random.randint(1,6)))
+        hitOption = list(range(0,random.randint(1,11)))
             
     selectHitOption = hitOption[random.randint(0,len(hitOption)-1)]
     
@@ -172,43 +184,35 @@ def randomName(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
     
 def createHero():
-     attr = attributes.Attributes(100,100)
-     return character.Character(
+    
+    attr = attributes.Attributes(100,100)
+    obj = gameObject(5,character.Character(
         "HERO",
          0,
          "Hero",
          attr,
-         "ENEMY"
-    )
+         "HERO"
+    )) 
+    
+    obj.resetTimer()
+    return obj
     
 def createEnemy():
     tag = randomName()
     enemyName = "Enemy "+tag
-    attr = attributes.Attributes(hp=random.randint(1,100),mp=random.randint(1,100))
-    return character.Character(
+    attr = attributes.Attributes(hp=random.randint(1,100),mp=random.randint(5,100))
+    obj = gameObject(random.randint(30,60),character.Character(
         "ENEMY",
         0,
         enemyName,
         attr,
         "HERO",
         tag
-    )
+    ))
+    obj.resetTimer()
+    return obj 
 
-def getActionsOptions():
-    actions = ('ATTACK', 'DEFEND', 'PRONE')
-    return actions
 
-def getRandomAction():
-      action = getActionsOptions()[random.randint(0,2)]
-      return action
 
-def attributePositions():
-    positions = list(range(0,len(gameQue)))
-    random.shuffle(positions)
-    for i in range(len(gameQue)):
-        gameQue[i].position = positions[i]
     
 
-def enemyActionChange():
-    for i in range(len(gameQue)):
-        gameQue[i].action = getRandomAction()

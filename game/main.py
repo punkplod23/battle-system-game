@@ -7,8 +7,6 @@ import string
 import time
 
 gameQue = []
-firstRun = 0
-highest_position = 12333333333333
 
 def getGameObjectByPosition(i):
     return gameQue[i].getCharacter();
@@ -26,8 +24,6 @@ def printEnemies():
             printCharacter(i)
 
 def healthBar(value):
-    #color_red = "\033[91m"
-    #color_green = "\033[92m"
     bar = ""
     if value > 0:
         bar = "-"  * value
@@ -41,14 +37,10 @@ def setup():
     gameQue.append(createHero());
     for i in range(random.randint(1,2)):
         gameQue.append(createEnemy());
-        
-        
-        
     print("Welcome Hero \n")  
     printCharacter(0)
     print("Enemies Have Appeared \n")
     print(gameQue)
-    
     printEnemies()
     runGame()
 
@@ -58,11 +50,9 @@ def checkConditions():
        print("All Enemies Defeated")
        return False 
 
-    for i in range(len(gameQue)):
-        if getGameObjectByPosition(i).type == "HERO":
-            if getGameObjectByPosition(i).attributes.hp < 1:
-                print("You Died")
-                return False 
+    if getGameObjectByPosition(0).attributes.hp < 1:
+        print("You Died")
+        return False 
         
     return True 
 
@@ -70,12 +60,10 @@ def resetTimer(position):
     gameQue[position].timerCurrent = countdown(gameQue[position].timer)
 
 def getLowestPosition():
-
     object_position = -99
     for i in range(len(gameQue)):
         if gameQue[i].checkIsTimerZero:
             return i
-
     return object_position     
             
               
